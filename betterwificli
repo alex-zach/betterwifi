@@ -1,0 +1,103 @@
+#!/usr/bin/env python
+
+import argparse, sys, base64, os
+
+
+class CLI(object):
+    def __init__(self):
+        if (os.getuid() != 0):
+            print('Root privileges are nedded')
+            sys.exit()
+        parser = argparse.ArgumentParser(
+            description='CLI for betterwifi',
+            usage='''betterwificli <command> [<args>]
+
+The commands are:
+   enable     Switches from default wifi to betterwifi
+   networks   Open the editor for the networks
+   ap         Command to change the ssid and passphrase of the wallaby
+   disable    Switches back to default wifi
+''')
+        parser.add_argument('command', help='Subcommand to run')
+        args = parser.parse_args(sys.argv[1:2])
+        if not hasattr(self, args.command):
+            print 'Unrecognized command'
+            parser.print_help()
+            exit(1)
+        getattr(self, args.command)()
+
+    def enable(self):
+        print('Enabling betterwifi...')
+        os.system('systemctl disable wifi')
+        os.system('mkdir /etc/betterwifi; mkdir /etc/betterwifi/oldservices')
+        os.system('mv /lib/systemd/system/wifi.service /etc/betterwifi/oldservices/')
+        os.system('mv /lib/systemd/system/hostapd.service /etc/betterwifi/oldservices/')
+        f = open('/usr/bin/betterwifi_configurator.py', 'w')
+        f.write(base64.b64decode('IwojIEFsZXhhbmRlciBaYWNoCiMgYS56YWNoQGF0cmlhLm9yLmF0CiMKIyBUaGlzIHNjcmlwdCBpcyBhIGJldHRlciB2ZXJzaW9uIG9mIHdpZmlfY29uZmlndXJhdG9yLnB5CiMKCmltcG9ydCBvcywgdGltZSwgaGFzaGxpYgoKIyByZWFkcyAvZXRjL2JldHRlcndpZmkvbmV0d29ya3MuY29uZgojIHJldHVybnMgYW4gYXJyYXkgb2YgdHVwbGVzIChzc2lkLCBwYXNzcGhyYXNlKQpkZWYga25vd25OZXR3b3JrcygpOgogICAgdHJ5OgogICAgICAgIGYgPSBvcGVuKCcvZXRjL2JldHRlcndpZmkvbmV0d29ya3MuY29uZicpCiAgICAgICAgbGluZXMgPSBmLnJlYWRsaW5lcygpCiAgICAgICAgZi5jbG9zZSgpCiAgICAgICAgbmV0d29ya3MgPSBbXQogICAgICAgIGZvciBsaW5lIGluIGxpbmVzOgogICAgICAgICAgICBpZiBsaW5lLnN0YXJ0c3dpdGgoJyMnKToKICAgICAgICAgICAgICAgIGNvbnRpbnVlCiAgICAgICAgICAgIHNwbGl0ID0gbGluZS5zdHJpcCgpLnNwbGl0KCc6JykKICAgICAgICAgICAgaWYgbGVuKHNwbGl0KSA9PSAyOgogICAgICAgICAgICAgICAgbmV0d29ya3MuYXBwZW5kKHR1cGxlKHNwbGl0KSkKICAgICAgICByZXR1cm4gbmV0d29ya3MKICAgIGV4Y2VwdDoKICAgICAgICByZXR1cm4gW10KCiMgc2NhbiBhbGwgbmV0d29ya3MKIyByZXR1cm5zIGFuIGFycmF5IG9mIHR1cGxlcyAoYnNzaWQsIGZyZXF1ZW5jeSwgc2lnbmFsIGxldmVsLCBmbGFncywgc3NpZCkKZGVmIHNjYW5OZXR3b3JrcyhpbnRlcmZhY2U9J3dsYW4wJyk6CiAgICBvcy5zeXN0ZW0oJ3dwYV9jbGkgLWkgJXMgc2NhbiA+IC9kZXYvbnVsbCAyPiYxJyAlIGludGVyZmFjZSkKICAgIHRpbWUuc2xlZXAoMC41KQogICAgZiA9IG9zLnBvcGVuKCd3cGFfY2xpIC1pICVzIHNjYW5fcmVzdWx0cycgJSBpbnRlcmZhY2UpCiAgICBsaW5lcyA9IGYucmVhZGxpbmVzKCkKICAgIG5ldHdvcmtzID0gW10KICAgIGZvciBsaW5lIGluIGxpbmVzOgogICAgICAgIHNwbGl0ID0gbGluZS5zdHJpcCgpLnNwbGl0KCdcdCcpCiAgICAgICAgaWYgbGVuKHNwbGl0KSA9PSA1OgogICAgICAgICAgICBzcGxpdFsxXSA9IGludChzcGxpdFsxXSkKICAgICAgICAgICAgc3BsaXRbMl0gPSBpbnQoc3BsaXRbMl0pCiAgICAgICAgICAgIG5ldHdvcmtzLmFwcGVuZCh0dXBsZShzcGxpdCkpCiAgICByZXR1cm4gbmV0d29ya3MKCiMgcmVhZCBjb25maWd1cmVkIG5ldHdvcmtzCiMgcmV0dXJucyBhbiBhcnJ5IG9mIHR1cGxlcyAobmlkLCBzc2lkLCBic3NpZCwgZmxhZ3MpCmRlZiBjb25maWd1cmVkTmV0d29ya3MoaW50ZXJmYWNlPSd3bGFuMCcpOgogICAgZiA9IG9zLnBvcGVuKCd3cGFfY2xpIC1pICVzIGxpc3RfbmV0d29ya3MnICUgaW50ZXJmYWNlKQogICAgbGluZXMgPSBmLnJlYWRsaW5lcygpCiAgICBuZXR3b3JrcyA9IFtdCiAgICBmb3IgbGluZSBpbiBsaW5lczoKICAgICAgICBzcGxpdCA9IGxpbmUuc3RyaXAoKS5zcGxpdCgnXHQnKQogICAgICAgIGlmIGxlbihzcGxpdCkgPT0gNDoKICAgICAgICAgICAgc3BsaXRbMF0gPSBpbnQoc3BsaXRbMF0pCiAgICAgICAgICAgIG5ldHdvcmtzLmFwcGVuZCh0dXBsZShzcGxpdCkpCiAgICByZXR1cm4gbmV0d29ya3MKCiMgcmVhZCB0aGUgd3BhX3N0YXRlIApkZWYgbmV0d29ya1N0YXRlKGludGVyZmFjZT0nd2xhbjAnKToKICAgIGYgPSBvcy5wb3Blbignd3BhX2NsaSAtaSAlcyBzdGF0dXMnICUgaW50ZXJmYWNlKQogICAgbGluZXMgPSBmLnJlYWRsaW5lcygpCiAgICBuZXR3b3JrcyA9IFtdCiAgICBmb3IgbGluZSBpbiBsaW5lczoKICAgICAgICBzcGxpdCA9IGxpbmUuc3RyaXAoKS5zcGxpdCgnPScpCiAgICAgICAgaWYgbGVuKHNwbGl0KSA9PSAyIGFuZCBzcGxpdFswXSA9PSAnd3BhX3N0YXRlJzoKICAgICAgICAgICAgcmV0dXJuIHNwbGl0WzFdCiAgICByZXR1cm4gJ1VOS05PV04nCgojIGFkZHMgYSBuZXcgbmV0d29yawpkZWYgYWRkTmV0d29yayhzc2lkLCBwYXNzcGhyYXNlLCBpbnRlcmZhY2U9J3dsYW4wJyk6CiAgICBmID0gb3MucG9wZW4oJ3dwYV9jbGkgLWkgJXMgYWRkX25ldHdvcmsnICUgaW50ZXJmYWNlKQogICAgbmlkID0gaW50KGYucmVhZCgpLnN0cmlwKCkpCiAgICBvcy5zeXN0ZW0oJ3dwYV9jbGkgLWkgJXMgc2V0X25ldHdvcmsgJWQgc3NpZCBcJyIlcyJcJyA+IC9kZXYvbnVsbCAyPiYxJyAlIChpbnRlcmZhY2UsIG5pZCwgc3NpZCkpCiAgICBvcy5zeXN0ZW0oJ3dwYV9jbGkgLWkgJXMgc2V0X25ldHdvcmsgJWQgcHNrIFwnIiVzIlwnID4gL2Rldi9udWxsIDI+JjEnICUgKGludGVyZmFjZSwgbmlkLCBwYXNzcGhyYXNlKSkKICAgIHJldHVybiBuaWQKCiMgY29ubmVjdHMgdG8gYW4gbmV0d29yawpkZWYgY29ubmVjdE5ldHdvcmsoc3NpZCwgcGFzc3BocmFzZSwgaW50ZXJmYWNlPSd3bGFuMCcpOgogICAgZXhpc3RpbmdfbmV0d29ya3MgPSBjb25maWd1cmVkTmV0d29ya3MoaW50ZXJmYWNlKQogICAgbmlkID0gLTEKICAgIGZvciBuIGluIGV4aXN0aW5nX25ldHdvcmtzOgogICAgICAgIGlmIG5bMV0gPT0gc3NpZDoKICAgICAgICAgICAgbmlkID0gblswXQogICAgICAgICAgICBicmVhawogICAgaWYgbmlkID09IC0xOgogICAgICAgIG5pZCA9IGFkZE5ldHdvcmsoc3NpZCwgcGFzc3BocmFzZSwgaW50ZXJmYWNlKQogICAgZWxzZToKICAgICAgICBvcy5zeXN0ZW0oJ3dwYV9jbGkgLWkgJXMgc2V0X25ldHdvcmsgJWQgcHNrIFwnIiVzIlwnID4gL2Rldi9udWxsIDI+JjEnICUgKGludGVyZmFjZSwgbmlkLCBwYXNzcGhyYXNlKSkKICAgIG9zLnN5c3RlbSgnd3BhX2NsaSAtaSAlcyBzZWxlY3RfbmV0d29yayAlZCA+IC9kZXYvbnVsbCAyPiYxJyAlIChpbnRlcmZhY2UsIG5pZCkpCiAgICB0aW1lLnNsZWVwKDUpCiAgICByZXR1cm4gbmV0d29ya1N0YXRlKGludGVyZmFjZSkgPT0gJ0NPTVBMRVRFRCcKCiMgc3RhcnRzIHRoZSBhY2Nlc3MgcG9pbnQKZGVmIHN0YXJ0QVAoc3NpZCwgcGFzc3BocmFzZSwgaW50ZXJmYWNlPSd3bGFuMCcpOgogICAgY2hhbm5lbHMgPSB7MjQxMjoxLCAyNDE3OjIsIDI0MjI6MywgMjQyNzo0LCAyNDMyOjUsIDI0Mzc6NiwgMjQ0Mjo3LCAyNDQ3OjgsIDI0NTI6OSwgMjQ1NzoxMCwgMjQ2MjoxMSwgMjQ2NzoxMiwgMjQ3MjoxM30KICAgIGNoYW5uZWxfY291bnQgPSBbMCwgMCwgMCwgMCwgMCwgMCwgMCwgMCwgMCwgMCwgMCwgMCwgMCwgMF0KICAgIAogICAgbmV0d29ya3MgPSBzY2FuTmV0d29ya3MoaW50ZXJmYWNlKQogICAgCiAgICBmb3IgbmV0d29yayBpbiBuZXR3b3JrczoKICAgICAgICBjaGFubmVsX2NvdW50W2NoYW5uZWxzW25ldHdvcmtbMV1dXSArPSAxCiAgICAKICAgIGNoYW5uZWwgPSA2CiAgICBjaGFubmVsX2xpc3QgPSBbMSwgMTEsIDMsIDldCiAgICAKICAgIGZvciBjIGluIGNoYW5uZWxfbGlzdDoKICAgICAgICBpZiBjaGFubmVsX2NvdW50W2NoYW5uZWxdID4gY2hhbm5lbF9jb3VudFtjXToKICAgICAgICAgICAgY2hhbm5lbCA9IGMKICAgICAgICAgICAgCiAgICBvcy5zeXN0ZW0oJ3JtIC9ldGMvYmV0dGVyd2lmaS9ob3N0YXBkX3dhbGxhYnkuY29uZiA+IC9kZXYvbnVsbCAyPiYxJykKICAgIAogICAgZiA9IG9wZW4oJy9ldGMvYmV0dGVyd2lmaS9ob3N0YXBkX3dhbGxhYnkuY29uZicsICd3JykKICAgIGYud3JpdGUoKCdpbnRlcmZhY2U9d2xhbjBcbicgKwogICAgICAgICAgICAnc3NpZD0lc1xuJyArIAogICAgICAgICAgICAnY2hhbm5lbD0lZFxuJyArCiAgICAgICAgICAgICd3cGE9M1xuJyArCiAgICAgICAgICAgICd3cGFfcGFzc3BocmFzZT0lc1xuJykgJSAoc3NpZCwgY2hhbm5lbCwgcGFzc3BocmFzZSkpCiAgICBmLmNsb3NlKCkKICAgIAogICAgb3Muc3lzdGVtKCdpZmNvbmZpZyB3bGFuMCAxOTIuMTY4LjEyNS4xJykKICAgIHRpbWUuc2xlZXAoMSkKICAgIG9zLnN5c3RlbSgnd3BhX2NsaSB0ZXInKQogICAgdGltZS5zbGVlcCgxKQogICAgb3Muc3lzdGVtKCdob3N0YXBkIC9ldGMvYmV0dGVyd2lmaS9ob3N0YXBkX3dhbGxhYnkuY29uZiAmJykKICAgIHRpbWUuc2xlZXAoNSkKICAgIG9zLnN5c3RlbSgnL3Vzci9zYmluL3VkaGNwZCAvZXRjL3VkaGNwZC5jb25mJykKICAgICAgICAgICAgCgprbmV0d29ya3MgPSBrbm93bk5ldHdvcmtzKCkKYW5ldHdvcmtzID0gc2Nhbk5ldHdvcmtzKCkKCmNuZXR3b3JrcyA9IFtdCgpmb3IgbncgaW4ga25ldHdvcmtzOgogICAgZm91bmQgPSBGYWxzZQogICAgZm9yIHNudyBpbiBhbmV0d29ya3M6CiAgICAgICAgaWYgbndbMF0gPT0gc253WzRdOgogICAgICAgICAgICBmb3VuZCA9IFRydWUKICAgICAgICAgICAgYnJlYWsKICAgIGlmIGZvdW5kOgogICAgICAgIGNuZXR3b3Jrcy5hcHBlbmQobncpCgpwcmludChjbmV0d29ya3MpCmZvciBudyBpbiBjbmV0d29ya3M6CiAgICBpZiBjb25uZWN0TmV0d29yayhud1swXSwgbndbMV0pOgogICAgICAgIGJyZWFrCmVsc2U6CiAgICBmID0gb3MucG9wZW4oJ3dhbGxhYnlfZ2V0X2lkLnNoJykKICAgIHNzaWQgPSBmLnJlYWQoKQogICAgcGFzc3BocmFzZT1oYXNobGliLnNoYTI1Nihzc2lkKS5oZXhkaWdlc3QoKVswOjZdKycwMCcKICAgIAogICAgdHJ5OgogICAgICAgIGYgPSBvcGVuKCcvZXRjL2JldHRlcndpZmkvYXAuY29uZicpCiAgICAgICAgbGluZXMgPSBmLnJlYWRsaW5lcygpCiAgICAgICAgZi5jbG9zZSgpCiAgICAKICAgICAgICBmb3IgbGluZSBpbiBsaW5lczoKICAgICAgICAgICAgc3BsaXQgPSBsaW5lLnN0cmlwKCkuc3BsaXQoJz0nKQogICAgICAgICAgICBpZiBsZW4oc3BsaXQpID09IDI6CiAgICAgICAgICAgICAgICBpZiBzcGxpdFswXSA9PSAnc3NpZCc6CiAgICAgICAgICAgICAgICAgICAgc3NpZCA9IHNwbGl0WzFdCiAgICAgICAgICAgICAgICBlbGlmIHNwbGl0WzBdID09ICdwYXNzcGhyYXNlJzoKICAgICAgICAgICAgICAgICAgICBwYXNzcGhyYXNlID0gc3BsaXRbMV0KICAgIGV4Y2VwdDoKICAgICAgICBwYXNzCgogICAgc3RhcnRBUChzc2lkLCBwYXNzcGhyYXNlKQo='))
+        f.close()
+        f = open('/lib/systemd/system/betterwifi.service', 'w')
+        f.write(base64.b64decode('VW5pdF0KRGVzY3JpcHRpb249YmV0dGVyd2lmaQpBZnRlcj1tdWx0aS11c2VyLnRhcmdldAoKW1NlcnZpY2VdClJlbWFpbkFmdGVyRXhpdD15ZXMKRXhlY1N0YXJ0PS91c3IvYmluL3B5dGhvbiAvdXNyL2Jpbi9iZXR0ZXJ3aWZpX2NvbmZpZ3VyYXRvci5weQoKW0luc3RhbGxdCldhbnRlZEJ5PWdyYXBoaWNhbC50YXJnZXQ='))
+        f.close()
+        os.system('systemctl daemon-reload')
+        os.system('systemctl enable betterwifi')
+        os.system('touch /etc/betterwifi/ap.conf')
+        f = open('/etc/betterwifi/networks.conf', 'w')
+        f.write(base64.b64decode('IyBuZXR3b3JrcyBmb3IgYmV0dGVyd2lmaQojIGZvcm1hdDogc3NpZDpwYXNzcGhyYXNl'))
+        f.close()
+        print('Done')
+        print('Reboot your Wallaby')
+
+    def networks(self):
+        os.system('nano /etc/betterwifi/networks.conf')
+        
+    def ap(self):
+        parser = argparse.ArgumentParser(description='Changes the ssid')
+        parser.add_argument('-s', '--ssid', help='set SSID')
+        parser.add_argument('-p', '--psk', help='Set Passphrase')
+        args = parser.parse_args(sys.argv[2:])
+        
+        ssid = None
+        passphrase = None
+        
+        try:
+            f = open('/etc/betterwifi/ap.conf')
+            lines = f.readlines()
+            f.close()
+            
+            for line in lines:
+                split = line.strip().split('=')
+                if len(split) == 2:
+                    if split[0] == 'ssid':
+                        ssid = split[1]
+                    elif split[0] == 'passphrase':
+                        passphrase = split[1]
+        except:
+            pass
+        
+        if args.ssid:
+            ssid = args.ssid
+        if args.psk:
+            passphrase = args.psk
+            
+        f = open('/etc/betterwifi/ap.conf', 'w')
+        if ssid:
+            f.write('ssid=%s\n'%ssid)
+        if passphrase:
+            f.write('passphrase=%s\n'%passphrase)
+        
+        f.close()
+    
+    def disable(self):
+        print('Disabling betterwifi...')
+        os.system('systemctl disable betterwifi')
+        os.system('rm -f /lib/systemd/system/betterwifi.service')
+        os.system('mv /etc/betterwifi/oldservices/wifi.service /lib/systemd/system/')
+        os.system('mv /etc/betterwifi/oldservices/hostapd.service /lib/systemd/system/')
+        os.system('rm -f /usr/bin/betterwifi_configurator.py')
+        os.system('rm -rf /etc/betterwifi')
+        os.system('systemctl daemon-reload')
+        os.system('systemctl enable wifi')
+        print('Done')
+        print('Reboot your Wallaby')
+
+CLI()
